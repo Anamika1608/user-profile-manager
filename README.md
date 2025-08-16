@@ -1,5 +1,3 @@
-# Take-Home Assignment (Progress Updated)
-
 ## Overview
 This project is a **User Profile Management application** built with React, TypeScript, and PostgreSQL.  
 The assignment involved enhancing the existing app by adding backend database integration, QR code functionality, and additional performance/security/feature improvements.  
@@ -71,3 +69,10 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
+
+## TechStack
+Frontend: React + Vite + Typescript
+Backend: Node.js
+ORM: Prisma
+Database: Postgres SQL
