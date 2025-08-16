@@ -46,9 +46,30 @@ export const getUsersQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
 });
 
+// Types
 export type User = z.infer<typeof userSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
 export type UserParams = z.infer<typeof userParamsSchema>;
 export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;
+
+/**
+ * Validation schemas for API requests
+ */
+export const createUserValidationSchema = z.object({
+  body: createUserSchema,
+});
+
+export const updateUserValidationSchema = z.object({
+  params: userParamsSchema,
+  body: updateUserSchema,
+});
+
+export const userParamsValidationSchema = z.object({
+  params: userParamsSchema,
+});
+
+export const getUsersValidationSchema = z.object({
+  query: getUsersQuerySchema,
+});
