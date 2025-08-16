@@ -4,9 +4,11 @@
 This project is a **User Profile Management application** built with React, TypeScript, and PostgreSQL.  
 The assignment involved enhancing the existing app by adding backend database integration, QR code functionality, and additional performance/security/feature improvements.  
 
-I have successfully completed **Task 1, Task 2, and part of Task 3** (details below).
+## Implementation video
 
----
+https://github.com/user-attachments/assets/36e61fbc-1776-427d-bcf7-7117b56cef66
+
+I have successfully completed **Task 1, Task 2, and part of Task 3** (details below).
 
 ## Current Application State
 The application currently includes:
@@ -17,7 +19,6 @@ The application currently includes:
 - ✅ Basic form validation and error handling  
 - ✅ Responsive design  
 
----
 
 ## Tasks Completed
 
@@ -32,7 +33,6 @@ The application currently includes:
 - Integrated frontend with backend API  
 - Data persists across browser refreshes  
 
----
 
 ### ✅ Task 2: QR Code Functionality
 - Added "Generate QR Code" button on user profile cards  
@@ -43,7 +43,6 @@ The application currently includes:
   - Auto-populates profile form  
   - Handles invalid QR codes gracefully  
 
----
 
 ### 🟡 Task 3: Enhancement (Partially Completed)
 I selected **Option A: Performance Optimization**.  
@@ -53,10 +52,10 @@ I selected **Option A: Performance Optimization**.
 - ✅ **Debounced Search**: Implemented search with debounce for efficiency  
 
 #### In Progress:
-- ⚡ **Image Uploading**: Integrated file upload handling  
-- ☁️ **Cloudinary Integration**: Partially done, images are being uploaded but final integration still pending  
+- ☁️ **Cloudinary Integration**: Partially done ( code is in my local )
 
----
+#### Pending:
+- Add caching strategies for API responses.
 
 ## Database Schema
 ```sql
