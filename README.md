@@ -72,7 +72,58 @@ CREATE TABLE users (
 ```
 
 ## TechStack
-Frontend: React + Vite + Typescript
-Backend: Node.js
-ORM: Prisma
-Database: Postgres SQL
+- Frontend: React + Vite + Typescript
+- Backend: Node.js
+- ORM: Prisma
+- Database: Postgres SQL
+
+## Setup
+
+1. Install dependencies:
+   ```bash
+   npm i
+   ```
+
+2. Start the React development server:
+   ```bash
+   npm run dev
+   ```
+
+## Environment Variables
+
+Create a `.env` file with the following variables:
+
+```env
+PORT=
+DATABASE_URL=
+NODE_ENV=
+FRONTEND_URL=
+VITE_BACKEND_URL=
+VITE_CLOUDINARY_CLOUD_NAME=
+```
+
+## Database Setup
+
+1. Get your database URL and add it to the `DATABASE_URL` environment variable
+
+2. Generate Prisma client:
+   ```bash
+   prisma generate
+   # or
+   npx prisma generate
+   ```
+
+3. Run database migrations:
+   ```bash
+   prisma migrate
+   # or
+   npm prisma migrate dev
+   ```
+
+## Running the Server
+
+To start the backend server:
+```bash
+npm run start:server
+```
+
