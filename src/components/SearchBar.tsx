@@ -65,19 +65,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </button>
         )}
       </div>
-
-      {/* Search Suggestions/Tips */}
-      {isFocused && !query && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-          <div className="text-xs text-gray-500 mb-2 font-medium">Search tips:</div>
-          <div className="space-y-1 text-xs text-gray-600">
-            <div className="flex items-center">
-              <Filter className="w-3 h-3 mr-2" />
-              <span>Search by name, email, location, or bio</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
