@@ -1,202 +1,256 @@
 import { User, UserFormData, ApiResponse } from './types';
-
-// Mock API service layer
-// Replace these functions with actual API calls when integrating with backend
+import { toast } from 'react-hot-toast';
 
 class UserProfileAPI {
-  private users: User[] = [];
-  private readonly STORAGE_KEY = 'userProfiles';
+  private readonly BASE_URL = import.meta.env.VITE_BACKEND_URL;
+  private readonly USERS_ENDPOINT = `${this.BASE_URL}/users`;
 
-  constructor() {
-    this.loadFromStorage();
-    if (this.users.length === 0) {
-      this.initializeMockData();
-    }
-  }
-
-  private loadFromStorage(): void {
+  private async makeRequest<T>(
+    url: string,
+    options: RequestInit = {},
+    showSuccessToast: boolean = false,
+    successMessage?: string
+  ): Promise<ApiResponse<T>> {
+    const loadingToast = toast.loading('Processing...');
+    
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
-        this.users = JSON.parse(stored);
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      const data = await response.json();
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      if (!response.ok) {
+        const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+        toast.error(errorMessage);
+        return {
+          data: null as T,
+          success: false,
+          message: errorMessage
+        };
       }
+
+      // Show success toast if requested
+      if (showSuccessToast && successMessage) {
+        toast.success(successMessage);
+      }
+
+      return {
+        data: data.data || data,
+        success: true,
+        message: data.message || 'Operation completed successfully'
+      };
+
     } catch (error) {
-      console.error('Error loading from storage:', error);
-      this.users = [];
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Network error occurred';
+      toast.error(errorMessage);
+      
+      return {
+        data: null as T,
+        success: false,
+        message: errorMessage
+      };
     }
   }
 
-  private saveToStorage(): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users));
-    } catch (error) {
-      console.error('Error saving to storage:', error);
+  async getAllUsers(query?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    location?: string;
+    sortBy?: 'fullName' | 'email' | 'createdAt' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<ApiResponse<User[]>> {
+    const searchParams = new URLSearchParams();
+    
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
     }
-  }
 
-  private initializeMockData(): void {
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        fullName: 'Sarah Johnson',
-        email: 'sarah.johnson@example.com',
-        phoneNumber: '+1 (555) 123-4567',
-        bio: 'Full-stack developer with a passion for creating intuitive user experiences. Love working with React, Node.js, and exploring new technologies.',
-        avatarUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400',
-        dateOfBirth: '1990-03-15',
-        location: 'San Francisco, CA',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        fullName: 'Michael Chen',
-        email: 'michael.chen@example.com',
-        phoneNumber: '+1 (555) 987-6543',
-        bio: 'UX/UI Designer focused on creating meaningful digital experiences. Specializing in mobile-first design and accessibility.',
-        avatarUrl: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
-        dateOfBirth: '1988-07-22',
-        location: 'New York, NY',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '3',
-        fullName: 'Emily Rodriguez',
-        email: 'emily.rodriguez@example.com',
-        phoneNumber: '+1 (555) 456-7890',
-        bio: 'Product manager with 8+ years of experience in tech startups. Passionate about user-centered product development.',
-        avatarUrl: 'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=400',
-        dateOfBirth: '1985-11-08',
-        location: 'Austin, TX',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: '4',
-        fullName: 'David Kim',
-        email: 'david.kim@example.com',
-        phoneNumber: '+1 (555) 321-0987',
-        bio: 'DevOps engineer specializing in cloud infrastructure and automation. AWS certified with expertise in Docker and Kubernetes.',
-        avatarUrl: 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=400',
-        dateOfBirth: '1992-01-30',
-        location: 'Seattle, WA',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-    ];
-
-    this.users = mockUsers;
-    this.saveToStorage();
-  }
-
-  async getAllUsers(): Promise<ApiResponse<User[]>> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    return {
-      data: [...this.users],
-      success: true,
-      message: 'Users retrieved successfully'
-    };
+    const url = `${this.USERS_ENDPOINT}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    
+    return this.makeRequest<User[]>(url, {
+      method: 'GET'
+    });
   }
 
   async getUserById(id: string): Promise<ApiResponse<User | null>> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const user = this.users.find(u => u.id === id);
-    return {
-      data: user || null,
-      success: !!user,
-      message: user ? 'User found' : 'User not found'
-    };
+    return this.makeRequest<User | null>(`${this.USERS_ENDPOINT}/${id}`, {
+      method: 'GET'
+    });
   }
 
   async createUser(userData: UserFormData): Promise<ApiResponse<User>> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const newUser: User = {
-      id: Date.now().toString(),
+    // Convert dateOfBirth string to Date object if provided
+    const processedData = {
       ...userData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth) : undefined
     };
 
-    this.users.push(newUser);
-    this.saveToStorage();
-
-    return {
-      data: newUser,
-      success: true,
-      message: 'User created successfully'
-    };
+    return this.makeRequest<User>(
+      this.USERS_ENDPOINT,
+      {
+        method: 'POST',
+        body: JSON.stringify(processedData)
+      },
+      true,
+      'User created successfully!'
+    );
   }
 
   async updateUser(id: string, userData: Partial<UserFormData>): Promise<ApiResponse<User>> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const userIndex = this.users.findIndex(u => u.id === id);
-    if (userIndex === -1) {
-      return {
-        data: {} as User,
-        success: false,
-        message: 'User not found'
-      };
-    }
-
-    this.users[userIndex] = {
-      ...this.users[userIndex],
+    // Convert dateOfBirth string to Date object if provided
+    const processedData = {
       ...userData,
-      updatedAt: new Date().toISOString(),
+      dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth) : undefined
     };
 
-    this.saveToStorage();
-
-    return {
-      data: this.users[userIndex],
-      success: true,
-      message: 'User updated successfully'
-    };
+    return this.makeRequest<User>(
+      `${this.USERS_ENDPOINT}/${id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(processedData)
+      },
+      true,
+      'User updated successfully!'
+    );
   }
 
   async deleteUser(id: string): Promise<ApiResponse<boolean>> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    const userIndex = this.users.findIndex(u => u.id === id);
-    if (userIndex === -1) {
-      return {
-        data: false,
-        success: false,
-        message: 'User not found'
-      };
-    }
-
-    this.users.splice(userIndex, 1);
-    this.saveToStorage();
+    const result = await this.makeRequest<null>(
+      `${this.USERS_ENDPOINT}/${id}`,
+      {
+        method: 'DELETE'
+      },
+      true,
+      'User deleted successfully!'
+    );
 
     return {
-      data: true,
-      success: true,
-      message: 'User deleted successfully'
+      data: result.success,
+      success: result.success,
+      message: result.message
     };
   }
 
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-    await new Promise(resolve => setTimeout(resolve, 250));
+    const searchParams = new URLSearchParams({
+      search: query.trim()
+    });
 
-    const normalizedQuery = query.toLowerCase().trim();
-    const filteredUsers = this.users.filter(user => 
-      user.fullName.toLowerCase().includes(normalizedQuery) ||
-      user.email.toLowerCase().includes(normalizedQuery) ||
-      (user.location && user.location.toLowerCase().includes(normalizedQuery)) ||
-      (user.bio && user.bio.toLowerCase().includes(normalizedQuery))
-    );
+    return this.makeRequest<User[]>(`${this.USERS_ENDPOINT}?${searchParams.toString()}`, {
+      method: 'GET'
+    });
+  }
 
-    return {
-      data: filteredUsers,
-      success: true,
-      message: `Found ${filteredUsers.length} users`
+  // Additional utility methods for better integration
+
+  async getUsersWithPagination(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<{
+    users: User[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrevious: boolean;
     };
+  }>> {
+    return this.makeRequest<{
+      users: User[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrevious: boolean;
+      };
+    }>(`${this.USERS_ENDPOINT}?page=${page}&limit=${limit}`, {
+      method: 'GET'
+    });
+  }
+
+  async checkUserExists(id: string): Promise<boolean> {
+    try {
+      const result = await this.getUserById(id);
+      return result.success && result.data !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  // Batch operations for multiple users
+  async createMultipleUsers(usersData: UserFormData[]): Promise<ApiResponse<User[]>> {
+    const loadingToast = toast.loading(`Creating ${usersData.length} users...`);
+    
+    try {
+      const results = await Promise.allSettled(
+        usersData.map(userData => this.createUser(userData))
+      );
+
+      toast.dismiss(loadingToast);
+
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      );
+      const failed = results.length - successful.length;
+
+      if (failed === 0) {
+        toast.success(`All ${usersData.length} users created successfully!`);
+      } else if (successful.length === 0) {
+        toast.error(`Failed to create all ${usersData.length} users`);
+      } else {
+        toast.success(`Created ${successful.length} users successfully. ${failed} failed.`);
+      }
+
+      return {
+        data: successful.map(result => 
+          (result as PromiseFulfilledResult<ApiResponse<User>>).value.data
+        ),
+        success: successful.length > 0,
+        message: `Created ${successful.length}/${usersData.length} users`
+      };
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      const errorMessage = error instanceof Error ? error.message : 'Batch operation failed';
+      toast.error(errorMessage);
+      
+      return {
+        data: [],
+        success: false,
+        message: errorMessage
+      };
+    }
+  }
+
+  // Advanced search with multiple filters
+  async advancedSearch(filters: {
+    search?: string;
+    location?: string;
+    sortBy?: 'fullName' | 'email' | 'createdAt' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<User[]>> {
+    return this.getAllUsers(filters);
   }
 }
 

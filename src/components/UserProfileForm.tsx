@@ -37,11 +37,41 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
         phoneNumber: user.phoneNumber || '',
         bio: user.bio || '',
         avatarUrl: user.avatarUrl || '',
-        dateOfBirth: user.dateOfBirth || '',
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : '',
         location: user.location || '',
       });
     }
   }, [user]);
+
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) {
+      return 'Email is required';
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return 'Please enter a valid email address';
+    }
+    
+    return null;
+  };
+
+  const validatePhoneNumber = (phone: string): string | null => {
+    if (!phone) return null; // Phone is optional
+    
+    // Clean phone number - remove all non-digit characters except +
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    
+    // More flexible phone validation
+    // Allows: +1234567890, 1234567890, +12 345 678 90, etc.
+    const phoneRegex = /^(\+\d{1,3})?\d{7,15}$/;
+    
+    if (!phoneRegex.test(cleanPhone)) {
+      return 'Please enter a valid phone number (7-15 digits)';
+    }
+    
+    return null;
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -54,17 +84,15 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
     }
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    // Phone number validation (optional)
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
+    // Phone number validation
+    const phoneError = validatePhoneNumber(formData.phoneNumber);
+    if (phoneError) {
+      newErrors.phoneNumber = phoneError;
     }
 
     // Date of birth validation (optional)
@@ -78,6 +106,38 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Real-time validation on blur
+  const handleFieldBlur = (field: keyof UserFormData, value: string) => {
+    let error: string | null = null;
+    
+    switch (field) {
+      case 'email':
+        error = validateEmail(value);
+        break;
+      case 'phoneNumber':
+        error = validatePhoneNumber(value);
+        break;
+      case 'fullName':
+        if (!value.trim()) {
+          error = 'Full name is required';
+        } else if (value.trim().length < 2) {
+          error = 'Full name must be at least 2 characters';
+        }
+        break;
+      case 'dateOfBirth':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          if (birthDate > today) {
+            error = 'Date of birth cannot be in the future';
+          }
+        }
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [field]: error || undefined }));
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string) => {
@@ -127,10 +187,52 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
     }
   };
 
+  // Helper function to clean form data before submission
+  const cleanFormData = (data: UserFormData): Partial<UserFormData> => {
+    const cleaned: Partial<UserFormData> = {};
+    
+    // Always include required fields (even if empty, they'll be validated)
+    cleaned.fullName = data.fullName.trim();
+    cleaned.email = data.email.trim();
+    
+    // Only include optional fields if they have values
+    if (data.phoneNumber && data.phoneNumber.trim()) {
+      // Clean phone number for backend
+      cleaned.phoneNumber = data.phoneNumber.replace(/[^\d+]/g, '');
+    }
+    
+    if (data.bio && data.bio.trim()) {
+      cleaned.bio = data.bio.trim();
+    }
+    
+    if (data.avatarUrl && data.avatarUrl.trim()) {
+      cleaned.avatarUrl = data.avatarUrl.trim();
+    }
+    
+    if (data.dateOfBirth && data.dateOfBirth.trim()) {
+      cleaned.dateOfBirth = data.dateOfBirth.trim();
+    }
+    
+    if (data.location && data.location.trim()) {
+      cleaned.location = data.location.trim();
+    }
+    
+    return cleaned;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission triggered');
+    console.log('Form data:', formData);
+    
     if (validateForm()) {
-      onSubmit(formData);
+      console.log('Validation passed');
+      // Clean the form data before submitting
+      const cleanedData = cleanFormData(formData);
+      console.log('Cleaned data being sent:', cleanedData);
+      onSubmit(cleanedData as UserFormData);
+    } else {
+      console.log('Validation failed:', errors);
     }
   };
 
@@ -214,6 +316,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
+                onBlur={(e) => handleFieldBlur('fullName', e.target.value)}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                   errors.fullName ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -231,6 +334,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
                 id="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                onBlur={(e) => handleFieldBlur('email', e.target.value)}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -248,6 +352,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
                 id="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                onBlur={(e) => handleFieldBlur('phoneNumber', e.target.value)}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                   errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -265,6 +370,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
                 id="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                onBlur={(e) => handleFieldBlur('dateOfBirth', e.target.value)}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                   errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
                 }`}

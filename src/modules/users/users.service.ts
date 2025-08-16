@@ -26,17 +26,6 @@ interface UpdateUserData {
 export const userService = {
   // Create a new user
   async createUser(data: CreateUserData) {
-    // Validate date of birth if provided
-    if (data.dateOfBirth) {
-      const age = new Date().getFullYear() - data.dateOfBirth.getFullYear();
-      if (age < 13) {
-        throw new AppError('User must be at least 13 years old', 400);
-      }
-      if (age > 120) {
-        throw new AppError('Invalid date of birth', 400);
-      }
-    }
-
     try {
       const user = await prisma.user.create({
         data: {
@@ -156,17 +145,6 @@ export const userService = {
 
   // Update user
   async updateUser(id: string, data: UpdateUserData) {
-    // Validate date of birth if provided
-    if (data.dateOfBirth) {
-      const age = new Date().getFullYear() - data.dateOfBirth.getFullYear();
-      if (age < 13) {
-        throw new AppError('User must be at least 13 years old', 400);
-      }
-      if (age > 120) {
-        throw new AppError('Invalid date of birth', 400);
-      }
-    }
-
     try {
       const user = await prisma.user.update({
         where: { id },
