@@ -21,6 +21,7 @@ function App() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [qrScannedData, setQrScannedData] = useState<Partial<User> | null>(null);
   
   // Notifications
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
@@ -38,6 +39,16 @@ function App() {
       handleSearch(searchQuery);
     }
   }, [users, searchQuery]);
+
+  // Handle QR scanned data - NEW
+  useEffect(() => {
+    if (qrScannedData) {
+      // Open form with QR scanned data pre-populated
+      setEditingUser(null); // Ensure we're creating a new user, not editing
+      setShowForm(true);
+      addNotification('success', `QR code scanned! Form populated with data for ${qrScannedData.fullName || 'user'}.`);
+    }
+  }, [qrScannedData]);
 
   const loadUsers = async () => {
     try {
@@ -96,11 +107,19 @@ function App() {
 
   const handleCreateNew = () => {
     setEditingUser(null);
+    setQrScannedData(null); // Clear any QR data
     setShowForm(true);
+  };
+
+  // Handle QR code scanned data
+  const handleCreateFromQR = (scannedData: Partial<User>) => {
+    setQrScannedData(scannedData);
+    // The useEffect will handle opening the form
   };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
+    setQrScannedData(null); // Clear any QR data when editing
     setShowForm(true);
   };
 
@@ -119,6 +138,7 @@ function App() {
         await loadUsers();
         setShowForm(false);
         setEditingUser(null);
+        setQrScannedData(null); // Clear QR data after successful submission
         addNotification('success', response.message);
       } else {
         addNotification('error', response.message);
@@ -133,6 +153,7 @@ function App() {
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingUser(null);
+    setQrScannedData(null); // Clear QR data when canceling
   };
 
   const handleDeleteClick = (user: User) => {
@@ -180,14 +201,17 @@ function App() {
                 <p className="text-sm text-gray-500">Manage user profiles with ease</p>
               </div>
             </div>
-            
-            <button
-              onClick={handleCreateNew}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              New Profile
-            </button>
+
+            {/* Header buttons */}
+            <div className="flex space-x-2">
+              <button
+                onClick={handleCreateNew}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                New Profile
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -203,12 +227,13 @@ function App() {
           />
         </div>
 
-        {/* User List */}
+        {/* User List - UPDATED with QR functionality */}
         <UserProfileList
           users={filteredUsers}
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
           onCreateNew={handleCreateNew}
+          onCreateFromQR={handleCreateFromQR} 
           isLoading={isLoading}
           searchQuery={searchQuery}
         />
@@ -218,6 +243,7 @@ function App() {
       {showForm && (
         <UserProfileForm
           user={editingUser}
+          qrData={qrScannedData} 
           onSubmit={handleFormSubmit}
           onCancel={handleFormCancel}
           isLoading={isFormLoading}
