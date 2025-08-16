@@ -1,9 +1,12 @@
 import express from 'express';
 import { prisma } from "./src/lib/prisma"
+import config from "./src/config"
+import db from "./src/config/dbConnection";
+import cors from "cors";
 
 const app = express();
 
-app.use(express.json());
+const port = config.port
 
 // Get all users
 app.get('/api/users', async (req, res) => {
@@ -65,7 +68,19 @@ app.delete('/api/users/:id', async (req, res) => {
   res.json({ message: 'User deleted successfully' });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.use(express.json());
+
+app.use(cors(
+    {
+        credentials: true,
+        origin: config.frontendUrl
+    }
+));
+
+db.connect()
+    .then(() => console.log("Database connected successfully"))
+    .catch(err => console.error("Database connection error:", err));
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
