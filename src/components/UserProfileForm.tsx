@@ -20,6 +20,8 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [dragActive, setDragActive] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -194,6 +196,32 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
     }
   };
 
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'unsigned_upload'); 
+    
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      return data.secure_url;
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Failed to upload image. Please try again.');
+    }
+  };
+
   const handleFileUpload = (file: File) => {
     // Prevent file upload if form is read-only (from QR scan)
     if (isFromQRScan) return;
@@ -208,6 +236,10 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       return;
     }
 
+    // Store the file for upload on submit
+    setUploadedFile(file);
+
+    // Create preview URL
     const reader = new FileReader();
     reader.onload = (e) => {
       setFormData(prev => ({ ...prev, avatarUrl: e.target?.result as string }));
@@ -275,24 +307,54 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
     return cleaned;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Form submission triggered');
-    console.log('Form data:', formData);
 
-    if (validateForm()) {
+    if (!validateForm()) {
+      console.log('Validation failed:', errors);
+      return;
+    }
+
+    setIsUploading(true);
+    
+    try {
+      let finalFormData = { ...formData };
+
+      // Upload image to Cloudinary if there's a new file
+      if (uploadedFile) {
+        console.log('Uploading image to Cloudinary...');
+        const cloudinaryUrl = await uploadToCloudinary(uploadedFile);
+        finalFormData.avatarUrl = cloudinaryUrl;
+        console.log('Image uploaded successfully:', cloudinaryUrl);
+      } else if (formData.avatarUrl && formData.avatarUrl.startsWith('data:')) {
+        // If we have a base64 image but no file (shouldn't happen with current flow)
+        finalFormData.avatarUrl = '';
+      }
+
       console.log('Validation passed');
       // Clean the form data before submitting
-      const cleanedData = cleanFormData(formData);
-      console.log('Cleaned data being sent:', cleanedData);
-      onSubmit(cleanedData as UserFormData);
-    } else {
-      console.log('Validation failed:', errors);
+      const cleanedData = cleanFormData(finalFormData);
+      
+      await onSubmit(cleanedData as UserFormData);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        avatar: error instanceof Error ? error.message : 'Failed to upload image' 
+      }));
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const getPlaceholder = (defaultPlaceholder: string): string => {
     return isFromQRScan ? 'Not Provided' : defaultPlaceholder;
+  };
+
+  const handleRemoveAvatar = () => {
+    setFormData(prev => ({ ...prev, avatarUrl: '' }));
+    setUploadedFile(null);
   };
 
   return (
@@ -307,7 +369,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
             <button
               onClick={onCancel}
               className="text-gray-400 hover:text-gray-600 transition-colors"
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
               <X className="w-6 h-6" />
             </button>
@@ -348,7 +410,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
               {formData.avatarUrl && !isFromQRScan && (
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, avatarUrl: '' }))}
+                  onClick={handleRemoveAvatar}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -505,15 +567,15 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isUploading}
                 className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
-                {isLoading ? 'Saving...' : (user ? 'Update Profile' : 'Create Profile')}
+                {isUploading ? 'Uploading Image...' : (isLoading ? 'Saving...' : (user ? 'Update Profile' : 'Create Profile'))}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
-                disabled={isLoading}
+                disabled={isLoading || isUploading}
                 className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
               >
                 Cancel

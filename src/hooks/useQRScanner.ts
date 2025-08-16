@@ -24,7 +24,6 @@ export const useQRScanner = (): UseQRScannerReturn => {
 
   const handleUserDataScanned = (userData: Partial<User>) => {
     setScannedUserData(userData);
-    console.log('Scanned user data:', userData);
   };
 
   const clearScannedData = () => {

@@ -34,6 +34,7 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
   // Parse QR code data
   const parseQRData = (data: string): ScannedUserData | null => {
     try {
+      console.log("parseQRData here", data)
       const parsed = JSON.parse(data);
       
       // Validate that it's a user profile QR code
@@ -79,7 +80,9 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
   // Process image for QR code
   const processImage = (imageData: ImageData) => {
+    console.log("imageData", imageData)
     const code = jsQR(imageData.data, imageData.width, imageData.height);
+    console.log("code", code)
     
     if (code) {
       const userData = parseQRData(code.data);
@@ -89,6 +92,8 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
         setError('Invalid QR code format. Please scan a user profile QR code.');
       }
     } else {
+      console.log("parseQRData(code.data)", parseQRData(code.data))
+      console.log("No QR code found")
       setError('No QR code found in the image. Please try another image.');
     }
   };
@@ -97,6 +102,8 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log("file here", file)
 
     setError(null);
     setSuccess(null);

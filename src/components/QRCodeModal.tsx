@@ -26,6 +26,8 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, user }) => {
       avatarUrl: user.avatarUrl || '',
       type: 'user_profile' // Identifier for QR code type
     };
+
+    console.log("QR data being generated:", qrData);
     return JSON.stringify(qrData);
   };
 
